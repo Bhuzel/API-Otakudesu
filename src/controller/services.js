@@ -33,7 +33,7 @@ const Services = {
                     })
                 })
                 return res.status(200).json({
-                    owner: "Andhika from NDBOTZ",
+                    owner: "Bhuzel",
                     status: true,
                     message: "success",
                     ongoing,
@@ -84,7 +84,7 @@ const Services = {
                 })
     
                 return res.status(200).json({
-                    owner: "Andhika from NDBOTZ",
+                    owner: "Bhuzel",
                     status: true,
                     message: "success",
                     completed,
@@ -133,7 +133,7 @@ const Services = {
                     })
                 })
                 return res.status(200).json({
-                    owner: "Andhika from NDBOTZ",
+                    owner: "Bhuzel",
                     status: true,
                     message: "success",
                     search,
@@ -177,7 +177,7 @@ const Services = {
                 const datas = anime_list.filter((value) => value.title !== null)
     
                 return res.status(200).json({
-                    owner: "Andhika from NDBOTZ",
+                    owner: "Bhuzel",
                     status: true,
                     message: "success",
                     anime_list: datas
@@ -240,7 +240,7 @@ const Services = {
                 })
     
                 return res.status(200).json({
-                    owner: "Andhika from NDBOTZ",
+                    owner: "Bhuzel",
                     status: true,
                     message: "success",
                     anime_detail,
@@ -391,7 +391,7 @@ const Services = {
             let high_quality = episodeHelper.batchQualityFunction(2, response.data);
             batch.download_list = { low_quality, medium_quality, high_quality };
             res.send({
-                owner: "Andhika from NDBOTZ",
+                owner: "Bhuzel",
                 status: true,
                 message: "succes",
                 batch
@@ -417,7 +417,7 @@ const Services = {
                     })
                 })
                 return res.status(200).json({
-                    owner: "Andhika from NDBOTZ",
+                    owner: "Bhuzel",
                     status: true,
                     message: 'success',
                     genres
@@ -430,7 +430,7 @@ const Services = {
         } catch (error) {
             console.log(error);
             res.send({
-                owner: "Andhika from NDBOTZ",
+                owner: "Bhuzel",
                 status: false,
                 message: error,
                 genres: []
@@ -471,7 +471,7 @@ const Services = {
                     })
                 })
                 return res.status(200).json({
-                    owner: "Andhika from NDBOTZ",
+                    owner: "Bhuzel",
                     status: true,
                     message: "success",
                     genreAnime
