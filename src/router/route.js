@@ -7,39 +7,39 @@ route.get("/", (req, res) => {
     res.send({
         owner: "Bhuzel",
         endpoint: {
-            getOngoingAnime: "/api/v1/ongoing/:page",
-            getCompletedAnime: "/api/v1/completed/:page",
-            getAnimeSearch: "/api/v1/search/:q",
-            getAnimeList: "/api/v1/anime-list",
-            getAnimeDetail: "/api/v1/detail/:endpoint",
-            getAnimeEpisode: "/api/v1/episode/:endpoint",
-            getBatchLink: "/api/v1/batch/:endpoint",
-            getGenreList: "/api/v1/genres",
-            getGenrePage: "/api/v1/genres/:genre/:page"
+            getOngoingAnime: "/ongoing/:page",
+            getCompletedAnime: "/completed/:page",
+            getAnimeSearch: "/search/:q",
+            getAnimeList: "/anime-list",
+            getAnimeDetail: "/detail/:endpoint",
+            getAnimeEpisode: "/episode/:endpoint",
+            getBatchLink: "/batch/:endpoint",
+            getGenreList: "/genres",
+            getGenrePage: "/genres/:genre/:page"
         }
     })
 })
 
 
 // Get Ongoing Anime -Done-
-router.get("/api/v1/ongoing/:page", Services.getOngoing)
+router.get("/ongoing/:page", Services.getOngoing)
 // Get Completed Anime -Done-
-router.get("/api/v1/completed/:page", Services.getCompleted)
+router.get("/completed/:page", Services.getCompleted)
 // Get Search Anime -Done-
-router.get("/api/v1/search/:q", Services.getSearch)
+router.get("/search/:q", Services.getSearch)
 // Get Anime List -Done-
-router.get("/api/v1/anime-list", Services.getAnimeList)
+router.get("/anime-list", Services.getAnimeList)
 // Get Anime Detail -Done-  
-route.get("/api/v1/detail/:endpoint", Services.getAnimeDetail)
+route.get("/detail/:endpoint", Services.getAnimeDetail)
 // Get Anime Episode -Done-
-router.get("/api/v1/episode/:endpoint", Services.getAnimeEpisode)
+router.get("/episode/:endpoint", Services.getAnimeEpisode)
 // Get Batch Link -Done-
-router.get("/api/v1/batch/:endpoint", Services.getBatchLink)
+router.get("/batch/:endpoint", Services.getBatchLink)
 // Get Genre List -Done-
-router.get("/api/v1/genres", Services.getGenreList) 
+router.get("/genres", Services.getGenreList) 
 // Get Genre Page -Done-
-router.get("/api/v1/genres/:genre/:page", Services.getGenrePage)
+router.get("/genres/:genre/:page", Services.getGenrePage)
 // Get EMbed Streaming 
-router.get("/api/v1/streaming/:content", Services.getEmbedByContent)
+router.get("/streaming/:content", Services.getEmbedByContent)
 
 module.exports = route
