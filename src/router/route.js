@@ -11,7 +11,7 @@ route.get("/", (req, res) => {
             getCompletedAnime: "/completed/:page",
             getAnimeSearch: "/search/:q",
             getAnimeList: "/anime-list",
-            getAnimeDetail: "/detail/:endpoint",
+            getAnimeDetail: "/anime/:endpoint",
             getAnimeEpisode: "/episode/:endpoint",
             getBatchLink: "/batch/:endpoint",
             getGenreList: "/genres",
@@ -30,7 +30,7 @@ router.get("/search/:q", Services.getSearch)
 // Get Anime List -Done-
 router.get("/anime-list", Services.getAnimeList)
 // Get Anime Detail -Done-  
-route.get("/detail/:endpoint", Services.getAnimeDetail)
+route.get("/anime/:endpoint", Services.getAnimeDetail)
 // Get Anime Episode -Done-
 router.get("/episode/:endpoint", Services.getAnimeEpisode)
 // Get Batch Link -Done-
@@ -40,6 +40,6 @@ router.get("/genres", Services.getGenreList)
 // Get Genre Page -Done-
 router.get("/genres/:genre/:page", Services.getGenrePage)
 // Get EMbed Streaming 
-router.get("/streaming/:content", Services.getEmbedByContent)
+router.get("/mirrors/:content", Services.getEmbedByContent)
 
 module.exports = route
