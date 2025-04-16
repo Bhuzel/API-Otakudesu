@@ -1,3 +1,4 @@
+const axios = require("axios")
 const services = require("../helper/sevice")
 const cheerio = require("cheerio")
 const baseUrl = require("../constant/url")
@@ -162,25 +163,38 @@ const Services = {
                 const element = $("#abtext")
                 let anime_list = []
                 let title, endpoint
-    
+        
                 element.find(".jdlbar").each((index, el) => {
                     title = $(el).find("a").text() || null
-                    endpoint = $(el).find("a").attr("href").replace(`${baseUrl}/anime/`, "")
-    
-                    anime_list.push({
-                        title,
-                        endpoint
-                    })
+                    endpoint = $(el).find("a").attr("href").replace(baseUrl, "");
+        
+                    if (title) {
+                        anime_list.push({
+                            title,
+                            endpoint // Menyimpan hanya path (endpoint)
+                        })
+                    }
                 })
-    
-                // filter null title
-                const datas = anime_list.filter((value) => value.title !== null)
-    
+        
+                // Mengelompokkan anime berdasarkan huruf pertama judul
+                let groupedAnimes = anime_list.reduce((groups, anime) => {
+                    const firstLetter = anime.title.charAt(0).toUpperCase(); // Ambil huruf pertama dan ubah jadi kapital
+                    if (!groups[firstLetter]) {
+                        groups[firstLetter] = []; // Jika belum ada kategori, buat array baru
+                    }
+                    groups[firstLetter].push({
+                        title: anime.title,
+                        url: anime.endpoint // Menggunakan hanya path (endpoint)
+                    }); // Masukkan anime ke dalam kategori yang sesuai
+                    return groups;
+                }, {});
+        
+                // Mengembalikan hasil pengelompokkan
                 return res.status(200).json({
                     owner: "Bhuzel",
                     status: true,
                     message: "success",
-                    anime_list: datas
+                    anime_list: groupedAnimes
                 })
             }
             return res.send({
@@ -196,73 +210,85 @@ const Services = {
             });
         }
     },
+    
+    
     getAnimeDetail: async (req, res) => {
-        const endpoint = req.params.endpoint
-        let url = `${baseUrl}/anime/${endpoint}/`
+        const endpoint = req.params.endpoint;
+        let url = `${baseUrl}/anime/${endpoint}/`;
     
         try {
-            const response = await services.fetchService(url, res)
-            if (response.status === 200) {
-                const $ = cheerio.load(response.data)
-                const infoElement = $(".fotoanime")
-                const episodeElement = $(".episodelist")
-                let anime_detail = {}
-                let episode_list = []
-                let thumb, sinopsis = [], detail = [], episode_title, episode_endpoint, episode_date, title
-    
-                infoElement.each((index, el) => {
-                    thumb = $(el).find("img").attr("src")
-                    $(el).find(".sinopc > p").each((index, el) => {
-                        sinopsis.push($(el).text())
-                    })
-                    $(el).find(".infozingle >  p").each((index, el) => {
-                        detail.push($(el).text())
-                    })
-    
-                    anime_detail.thumb = thumb
-                    anime_detail.sinopsis = sinopsis
-                    anime_detail.detail = detail
-                })
-    
-                title = $(".jdlrx > h1").text()
-                anime_detail.title = title
-    
-                episodeElement.find("li").each((index, el) => {
-                    episode_title = $(el).find("span > a").text()
-                    episode_endpoint = $(el).find("span > a").attr("href").replace(`${baseUrl}/episode/`, "").replace(`${baseUrl}/batch/`, "").replace(`${baseUrl}/lengkap/`, "").replace("/", "")
-                    episode_date = $(el).find(".zeebr").text()
-    
-                    episode_list.push({
-                        episode_title,
-                        episode_endpoint,
-                        episode_date
-                    })
-                })
-    
-                return res.status(200).json({
-                    owner: "Bhuzel",
-                    status: true,
-                    message: "success",
-                    anime_detail,
-                    episode_list,
-                    endpoint
-                })
-            }
-            res.send({
-                message: response.status,
-                anime_detail: [],
-                episode_list: []
+            // Mengambil data anime langsung dari URL
+            const { data } = await axios.get(url, {
+                headers: {
+                    "User-Agent": "Mozilla/5.0",
+                    "Referer": "https://otakudesu.cloud/"
+                }
             });
+    
+            const $ = cheerio.load(data);
+            const result = {};
+    
+            // Menyusun detail anime
+            result.title = $(".jdlrx h1").text().trim();
+            result.image = $(".fotoanime img").attr("src") || null;
+            result.synopsis = $(".sinopc").text().trim();
+            result.metadata = {};
+            $(".infozingle p").each((_, el) => {
+                const rawLabel = $(el).find("b").text().trim().replace(":", "");
+                const label = rawLabel.toLowerCase().replace(/\s+/g, '');
+                const value = $(el).text().split(":").slice(1).join(":").trim();
+                if (label && value) {
+                    result.metadata[label] = value;
+                }
+            });
+    
+            // Genre list (array)
+            result.metadata.genres = [];
+            $(".infozingle a").each((_, el) => {
+                result.metadata.genres.push($(el).text().trim());
+            });
+    
+            // Episode list, batch, dan lengkap dipisah
+            result.episodes = [];
+            result.batch = null;
+            result.complete = null;
+    
+            // Mengambil episode
+            $(".episodelist ul li a").each((_, el) => {
+                const title = $(el).text().trim();
+                let url = $(el).attr("href");
+    
+                // Ambil sisa path setelah domain
+                url = url.replace("https://otakudesu.cloud", "");
+    
+                if (/batch/i.test(title)) {
+                    result.batch = { title, url };
+                } else if (/lengkap/i.test(title) || /\/lengkap\//i.test(url)) {
+                    result.complete = { title, url };
+                } else {
+                    result.episodes.push({ title, url });
+                }
+            });
+    
+            return res.status(200).json({
+                owner: "Bhuzel",
+                status: true,
+                message: "success",
+                anime_detail: result,
+                endpoint
+            });
+    
         } catch (error) {
             console.log(error);
-            res.send({
+            return res.status(500).send({
                 status: false,
-                message: error,
+                message: error.message,
                 anime_detail: [],
                 episode_list: []
             });
         }
-    },
+    },    
+    
     getEmbedByContent: async(req, res) => {
         try {
             let nonce = await episodeHelper.getNonce();
@@ -272,7 +298,7 @@ const Services = {
             const parse = cheerio.load(html_streaming)
             const link = parse('iframe').attr('src')
             const obj = {};
-            obj.streaming_url = link
+            obj.stream_url = link
 
             res.send(obj);
         } catch (err) {
@@ -283,98 +309,106 @@ const Services = {
     getAnimeEpisode: async (req, res) => {
         const endpoint = req.params.endpoint;
         const url = `${baseUrl}/episode/${endpoint}`;
-
+      
         try {
-            const response = await services.fetchService(url, res);
-            const $ = cheerio.load(response.data);
-            const streamElement = $("#lightsVideo").find("#embed_holder");
-            const obj = {};
-            obj.title = $(".venutama > h1").text();
-            obj.baseUrl = url;
-            obj.id = url.replace(url.baseUrl, "");
-            obj.streamLink = streamElement.find(".responsive-embed-stream > iframe").attr("src");
-            obj.relative = []
-            let link_ref, title_ref
-            $(".flir > a").each((index, el) => {
-                title_ref = $(el).text()
-                link_ref = $(el).attr("href").replace(`${baseUrl}/anime/`, "").replace(`${baseUrl}/episode/`, "").replace("/", "")
+          const response = await services.fetchService(url, res);
+          const $ = cheerio.load(response.data);
+          const streamElement = $("#lightsVideo").find("#embed_holder");
     
-                obj.relative.push({
-                    title_ref,
-                    link_ref
-                })
-            })
-            
-            obj.list_episode = []
-            let list_episode_title, list_episode_endpoint
-            $("#selectcog > option").each((index, el) => {
-                list_episode_title = $(el).text()
-                list_episode_endpoint = $(el).attr("value").replace(`${baseUrl}/episode/`, "").replace("/", "")
-                obj.list_episode.push({
-                    list_episode_title,
-                    list_episode_endpoint
-                })
-            })
-            obj.list_episode.shift()
-            const streamLinkResponse = streamElement.find("iframe").attr("src");
-            obj.link_stream_response = await episodeHelper.get(streamLinkResponse);
-           
-            
-            let streaming1 = [];
-            let streaming2 = [];
-            let streaming3 = [];
-
-            $('#embed_holder > div.mirrorstream > ul.m360p > li').each((k, v) => {               
-                let driver = $(v).text()
-
-                streaming1.push({
-                    driver: driver,
-                    link: "/api/v1/streaming/" + $(v).find('a').data().content
+          const result = {};
+          result.title = $(".venutama > h1").text();
+          
+          // Menambahkan image dari div.cukder
+          result.image = $(".cukder img").attr("src");
+    
+          result.stream_url = streamElement.find(".responsive-embed-stream > iframe").attr("src");
+    
+          // Parsing mirror per kualitas
+          const qualities = ['360p', '480p', '720p'];
+          const mirrors = {};
+    
+          qualities.forEach((q) => {
+            const selector = `.mirrorstream > .m${q} > li`;
+            const list = [];
+    
+            $(selector).each((i, el) => {
+              const name = $(el).text().trim();
+              const content = $(el).find('a').data('content');
+              if (content) {
+                list.push({
+                  name,
+                  content,
+                  link: `/mirrors/${content}`
                 });
-            })
-
-
-            $('.mirrorstream > .m480p > li').each(async(k, v) => {               
-                let driver = $(v).text()
-
-                streaming2.push({
-                    driver: driver,
-                    link: "/api/v1/streaming/" + $(v).find('a').data().content
-                });
-            })
-
-            $('.mirrorstream > .m720p > li').each(async(k, v) => {               
-                let driver = $(v).text()
-
-                streaming3.push({
-                    driver: driver,
-                    link: "/api/v1/streaming/" + $(v).find('a').data().content
-                });
-            })
-
-            obj.mirror_embed1 = { quality: '360p', straming: streaming1 };
-            obj.mirror_embed2 = { quality: '480p', straming: streaming2 };
-            obj.mirror_embed3 = { quality: '720p', straming: streaming3 };
-
-            let low_quality;
-            let medium_quality;
-            let high_quality;
-
-            if ($('#venkonten > div.venser > div.venutama > div.download > ul > li:nth-child(1)').text() === '') {
-                low_quality = episodeHelper.notFoundQualityHandler(response.data, 0)
-                medium_quality = episodeHelper.notFoundQualityHandler(response.data, 1)
-                high_quality = episodeHelper.notFoundQualityHandler(response.data, 2)
-            } else {
-                low_quality = episodeHelper.epsQualityFunction(0, response.data);
-                medium_quality = episodeHelper.epsQualityFunction(1, response.data);
-                high_quality = episodeHelper.epsQualityFunction(2, response.data);
+              }
+            });
+    
+            if (list.length) mirrors[q] = list;
+          });
+    
+          result.mirrors = mirrors;
+    
+          // Navigation
+          const navLinks = $(".flir > a");
+          const prev = $(navLinks[0]).attr("href")?.replace(baseUrl, "") || null;
+          const allEpisode = $(navLinks[1]).attr("href")?.replace(baseUrl, "") || null;
+          const next = $(navLinks[2]).attr("href")?.replace(baseUrl, "") || null;
+    
+          result.navigation = {
+            prev,
+            allEpisode,
+            next
+          };
+    
+          // Tambahan episode list
+          result.episodes = [];
+          $(".judul-recommend-anime-series a").each((_, el) => {
+            const ep = $(el).text().trim();
+            const val = $(el).attr("href");
+            const episodeUrl = val.split("/episode/").pop(); // Ambil bagian belakang URL
+            result.episodes.push({ episode: ep, url: `/episode/${episodeUrl}` });
+          });
+    
+          // Tambahan metadata
+          result.metadata = {};
+          $(".infozingle p").each((_, el) => {
+            const label = $(el).find("b").text().toLowerCase().trim().replace(":", "");
+            const value = $(el).text().split(":").slice(1).join(":").trim();
+            if (label && value) result.metadata[label] = value;
+          });
+    
+          result.metadata.genres = [];
+          $(".infozingle a").each((_, el) => {
+            result.metadata.genres.push($(el).text().trim());
+          });
+    
+          // Tambahan download links
+          result.downloads = [];
+          $(".download ul li").each((_, li) => {
+            const quality = $(li).find("strong").text().trim();
+            const size = $(li).find("i").text().trim();
+            const links = [];
+    
+            $(li).find("a").each((_, a) => {
+              links.push({
+                name: $(a).text().trim(),
+                url: $(a).attr("href")
+              });
+            });
+    
+            if (quality && links.length) {
+              result.downloads.push({ quality, size, links });
             }
-            obj.quality = { low_quality, medium_quality, high_quality };
-            res.send(obj);
+          });
+    
+          res.send(result);
         } catch (err) {
-            console.log(err);
+          console.error(err);
+          res.status(500).send({ error: "Something went wrong" });
         }
     },
+    
+    
     getBatchLink: async (req, res) => {
         const endpoint = req.params.endpoint;
         const fullUrl = `${baseUrl}/batch/${endpoint}`;
